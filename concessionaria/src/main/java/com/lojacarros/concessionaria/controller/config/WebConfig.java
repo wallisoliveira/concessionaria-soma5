@@ -11,7 +11,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Converte o caminho físico da pasta 'uploads' em URL acessível
-        String path = Paths.get(System.getProperty("user.dir") + "/uploads").toUri().toString();
+        String uploadPath = System.getProperty("os.name").toLowerCase().contains("win")
+                ? System.getProperty("user.dir") + "/src/main/resources/static/uploads"
+                : "/tmp/uploads";
+                
+        String path = Paths.get(uploadPath).toUri().toString();
         registry.addResourceHandler("/uploads/**").addResourceLocations(path);
     }
 }

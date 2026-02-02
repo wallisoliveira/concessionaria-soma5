@@ -17,7 +17,10 @@ public class CarroController {
     @Autowired
     private CarroRepository repository;
 
-    private static String CAMINHO_IMAGENS = "src/main/resources/static/uploads/";
+    // Usa /tmp/uploads se estiver no Render (Linux), ou o caminho local se estiver no Windows
+    private static String CAMINHO_IMAGENS = System.getProperty("os.name").toLowerCase().contains("win") 
+            ? "src/main/resources/static/uploads/" 
+            : "/tmp/uploads/";
 
     @GetMapping
     public List<Carro> listar() {
