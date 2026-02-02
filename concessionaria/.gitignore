@@ -1,0 +1,8 @@
+/target/
+.help/
+.mvn/
+mvnw
+mvnw.cmd
+.DS_Store
+src/main/resources/static/uploads/*
+!src/main/resources/static/uploads/.gitkeep
