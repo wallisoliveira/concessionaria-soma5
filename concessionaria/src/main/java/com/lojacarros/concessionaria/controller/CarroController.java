@@ -1,64 +1,50 @@
 package com.lojacarros.concessionaria.controller;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.lojacarros.concessionaria.model.Carro;
 import com.lojacarros.concessionaria.repository.CarroRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.nio.file.*;
-import java.io.IOException;
-import java.util.List;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@RestController
-@RequestMapping("/api/carros")
-@CrossOrigin("*") 
+import java.util.Map;
+
+@Controller
+@RequestMapping("/admin")
 public class CarroController {
 
     @Autowired
-    private CarroRepository repository;
+    private CarroRepository carroRepository;
 
-    // Usa /tmp/uploads se estiver no Render (Linux), ou o caminho local se estiver no Windows
-    private static String CAMINHO_IMAGENS = System.getProperty("os.name").toLowerCase().contains("win") 
-            ? "src/main/resources/static/uploads/" 
-            : "/tmp/uploads/";
+    // Configuração Cloudinary com suas credenciais
+    private Cloudinary cloudinary = new Cloudinary(ObjectUtils.asMap(
+            "cloud_name", "drumr69qc",
+            "api_key", "862236548868838",
+            "api_secret", "NMf7dz8ANk65iyWGEUiJnULymsk"
+    ));
 
-    @GetMapping
-    public List<Carro> listar() {
-        return repository.findAll();
-    }
+    @PostMapping("/salvar")
+    public String salvar(@ModelAttribute Carro carro, 
+                         @RequestParam("file") MultipartFile file, 
+                         RedirectAttributes attributes) {
+        try {
+            if (file != null && !file.isEmpty()) {
+                // Upload para Cloudinary
+                Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+                String url = uploadResult.get("url").toString();
+                carro.setImagemUrl(url);
+            }
 
-    @PostMapping("/com-foto")
-    public Carro salvarComFoto(
-            @RequestParam("marca") String marca,
-            @RequestParam("modelo") String modelo,
-            @RequestParam("ano") Integer ano,
-            @RequestParam("preco") Double preco,
-            @RequestParam("descricao") String descricao,
-            @RequestParam("foto") MultipartFile foto) throws IOException {
+            carroRepository.save(carro);
+            attributes.addFlashAttribute("mensagem", "Veículo salvo com sucesso!");
 
-        Carro carro = new Carro();
-        carro.setMarca(marca);
-        carro.setModelo(modelo);
-        carro.setAno(ano);
-        carro.setPreco(preco);
-        carro.setDescricao(descricao);
-
-        if (foto != null && !foto.isEmpty()) {
-            Path pasta = Paths.get(CAMINHO_IMAGENS);
-            if (!Files.exists(pasta)) Files.createDirectories(pasta);
-
-            String nomeArquivo = System.currentTimeMillis() + "_" + foto.getOriginalFilename();
-            Path caminhoCompleto = pasta.resolve(nomeArquivo);
-            Files.write(caminhoCompleto, foto.getBytes());
-            
-            carro.setLinkImagem("/uploads/" + nomeArquivo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            attributes.addFlashAttribute("erro", "Erro ao salvar veículo: " + e.getMessage());
         }
-
-        return repository.save(carro);
-    }
-
-    @DeleteMapping("/{id}")
-    public void excluir(@PathVariable Long id) {
-        repository.deleteById(id);
+        return "redirect:/admin.html";
     }
 }
